@@ -88,6 +88,13 @@ transS ::
 transS f (Store sa s) =
   Store sa (f s)
 
+transSF :: Functor f =>
+  (s -> f s)
+  -> Store s a
+  -> f (Store s a)
+transSF t (Store sa s) =
+  Store sa <$> (t s)
+
 duplicateS ::
   Store s a
   -> Store s (Store s a)
@@ -251,8 +258,9 @@ fmodify ::
   -> (b -> f b)
   -> a
   -> f a
-fmodify =
-  error "todo: fmodify"
+fmodify (Lens r) t a =
+  extractS <$> transSF t (r a)
+
 
 -- |
 --
@@ -267,8 +275,8 @@ fmodify =
   -> f b
   -> a
   -> f a
-(|=) =
-  error "todo: (|=)"
+(|=) l =
+  fmodify l . const
 
 infixl 5 |=
 
@@ -285,7 +293,10 @@ infixl 5 |=
 fstL ::
   Lens (x, y) x
 fstL =
-  error "todo: fstL"
+  Lens (\xy ->
+          Store (\x1 -> (x1, snd xy)) (fst xy)
+       )
+
 
 -- |
 --
@@ -300,7 +311,10 @@ fstL =
 sndL ::
   Lens (x, y) y
 sndL =
-  error "todo: sndL"
+  Lens (\xy ->
+        Store (\x1 -> (fst xy, x1)) (snd xy)
+     )
+
 
 -- |
 --
@@ -325,8 +339,14 @@ mapL ::
   Ord k =>
   k
   -> Lens (Map k v) (Maybe v)
-mapL =
-  error "todo: mapL"
+mapL k =
+  Lens (\m ->
+          Store (maybe
+                  (Map.delete k m)
+                  (flip (Map.insert k) m)
+                 )
+                 (Map.lookup k m)
+       )
 
 -- |
 --
@@ -351,8 +371,13 @@ setL ::
   Ord k =>
   k
   -> Lens (Set k) Bool
-setL =
-  error "todo: setL"
+setL k =
+  Lens (\s ->
+          Store (bool
+                  (Set.delete k s)
+                  (Set.insert k s)
+                ) (Set.member k s)
+       )
 
 -- |
 --
@@ -365,8 +390,16 @@ compose ::
   Lens b c
   -> Lens a b
   -> Lens a c
-compose =
-  error "todo: compose"
+compose (Lens bcb) (Lens aba) =
+  -- Lens (\a -> -- Store c a  which means (c -> a) c
+  --         mapS bcb (aba a) -- Store b Store b a
+  --      )
+   Lens (\a -> let sba = aba a
+           in
+            Store
+             (\c -> a)
+             (getS (bcb $ getS sba))
+       )
 
 -- | An alias for @compose@.
 (|.) ::
@@ -388,7 +421,7 @@ infixr 9 |.
 identity ::
   Lens a a
 identity =
-  error "todo: identity"
+  Lens (\a -> Store (const a) a)
 
 -- |
 --
