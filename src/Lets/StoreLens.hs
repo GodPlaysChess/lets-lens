@@ -45,6 +45,7 @@ module Lets.StoreLens (
 ) where
 
 import           Control.Applicative (Applicative ((<*>)))
+import           Data.Bifunctor      (bimap)
 import           Data.Char           (toUpper)
 import           Data.Functor        ((<$>))
 import           Data.Map            (Map)
@@ -390,16 +391,14 @@ compose ::
   Lens b c
   -> Lens a b
   -> Lens a c
-compose (Lens bcb) (Lens aba) =
-  -- Lens (\a -> -- Store c a  which means (c -> a) c
-  --         mapS bcb (aba a) -- Store b Store b a
-  --      )
-   Lens (\a -> let sba = aba a
-           in
-            Store
-             (\c -> a)
-             (getS (bcb $ getS sba))
-       )
+compose (Lens bcb) (Lens aba) = Lens (\a ->
+                                        let store1 = aba a
+                                            store2 = bcb $ getS store1
+                                            in
+                                          Store
+                                          ((setS store1) . (setS store2))
+                                          (getS store2)
+                                      )
 
 -- | An alias for @compose@.
 (|.) ::
@@ -434,8 +433,16 @@ product ::
   Lens a b
   -> Lens c d
   -> Lens (a, c) (b, d)
-product =
-  error "todo: product"
+product (Lens sba) (Lens sdc) =
+  Lens (\ac ->
+          let store1 = sba $ fst ac
+              store2 = sdc $ snd ac
+          in
+            Store
+               (\bd -> (setS store1 (fst bd), setS store2 (snd bd)))
+               (getS store1, getS store2)
+
+ )
 
 -- | An alias for @product@.
 (***) ::
@@ -461,11 +468,20 @@ infixr 3 ***
 -- >>> set (choice fstL sndL) (Right ("abc", 7)) 8
 -- Right ("abc",8)
 choice ::
-  Lens a x
+  Lens a x -- \a -> Store x a  -- x -> a  & x
   -> Lens b x
-  -> Lens (Either a b) x
-choice =
-  error "todo: choice"
+  -> Lens (Either a b) x  -- \eab -> Store x -> eab & x
+choice (Lens r1) (Lens r2) =
+  Lens (\eab ->
+          Store
+              (\x ->
+                 bimap
+                   (\a -> setS (r1 a) x)
+                   (\b -> setS (r2 b) x)
+                   eab
+              )
+              (either id id $ bimap (getS . r1) (getS . r2) eab)
+       )
 
 -- | An alias for @choice@.
 (|||) ::
