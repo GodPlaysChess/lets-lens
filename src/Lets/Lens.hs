@@ -73,19 +73,26 @@ module Lets.Lens (
 , intOrLengthEven
 ) where
 
-import Control.Applicative(Applicative((<*>), pure))
-import Data.Char(toUpper)
-import Data.Foldable(Foldable(foldMap))
-import Data.Functor((<$>))
-import Data.Map(Map)
-import qualified Data.Map as Map(insert, delete, lookup)
-import Data.Monoid(Monoid)
-import qualified Data.Set as Set(Set, insert, delete, member)
-import Data.Traversable(Traversable(traverse))
-import Lets.Data(AlongsideLeft(AlongsideLeft, getAlongsideLeft), AlongsideRight(AlongsideRight, getAlongsideRight), Identity(Identity, getIdentity), Const(Const, getConst), Tagged(Tagged, getTagged), IntOr(IntOrIs, IntOrIsNot), IntAnd(IntAnd), Person(Person), Locality(Locality), Address(Address), bool)
-import Lets.Choice(Choice(left, right))
-import Lets.Profunctor(Profunctor(dimap))
-import Prelude hiding (product)
+import           Control.Applicative (Applicative (pure, (<*>)))
+import           Data.Char           (toUpper)
+import           Data.Foldable       (Foldable (foldMap))
+import           Data.Functor        ((<$>))
+import           Data.Map            (Map)
+import qualified Data.Map            as Map (delete, insert, lookup)
+import           Data.Monoid         (Monoid)
+import qualified Data.Set            as Set (Set, delete, insert, member)
+import           Data.Traversable    (Traversable (traverse))
+import           Lets.Choice         (Choice (left, right))
+import           Lets.Data           (Address (Address), AlongsideLeft (AlongsideLeft, getAlongsideLeft),
+                                      AlongsideRight (AlongsideRight, getAlongsideRight),
+                                      Const (Const, getConst),
+                                      Identity (Identity, getIdentity),
+                                      IntAnd (IntAnd),
+                                      IntOr (IntOrIs, IntOrIsNot),
+                                      Locality (Locality), Person (Person),
+                                      Tagged (Tagged, getTagged), bool)
+import           Lets.Profunctor     (Profunctor (dimap))
+import           Prelude             hiding (product)
 
 -- $setup
 -- >>> import qualified Data.Map as Map(fromList)
@@ -97,7 +104,7 @@ import Prelude hiding (product)
 --
 -- class (Foldable t, Functor t) => Traversable t where
 --   traverse ::
---     Applicative f => 
+--     Applicative f =>
 --     (a -> f b)
 --     -> t a
 --     -> f (t b)
@@ -110,17 +117,17 @@ fmapT ::
   (a -> b)
   -> t a
   -> t b
-fmapT =
-  error "todo: fmapT"
+fmapT = fmap
+
 
 -- | Let's refactor out the call to @traverse@ as an argument to @fmapT@.
-over :: 
+over ::
   ((a -> Identity b) -> s -> Identity t)
   -> (a -> b)
   -> s
   -> t
-over =
-  error "todo: over"
+over tr f =  getIdentity . tr (Identity . f)
+--  getIdentity $ getIdentity (fmapT tr (Identity (Identity . f))) s
 
 -- | Here is @fmapT@ again, passing @traverse@ to @over@.
 fmapTAgain ::
@@ -129,7 +136,7 @@ fmapTAgain ::
   -> t a
   -> t b
 fmapTAgain =
-  error "todo: fmapTAgain"
+  over traverse
 
 -- | Let's create a type-alias for this type of function.
 type Set s t a b =
@@ -141,15 +148,17 @@ type Set s t a b =
 -- unwrapping.
 sets ::
   ((a -> b) -> s -> t)
-  -> Set s t a b  
-sets =
-  error "todo: sets"
+  -> Set s t a b
+sets = ((Identity .) .) . (. (getIdentity .))
+
 
 mapped ::
   Functor f =>
   Set (f a) (f b) a b
-mapped =
-  error "todo: mapped"
+mapped = sets fmap
+ -- \f fa -> Identity $ fmap (getIdentity . f) fa
+-- (Identity .) . fmap . (getIdentity .)
+
 
 set ::
   Set s t a b
@@ -289,7 +298,7 @@ _Left =
   error "todo: _Left"
 
 _Right ::
-  Prism (Either x a) (Either x b) a b 
+  Prism (Either x a) (Either x b) a b
 _Right =
   error "todo: _Right"
 
@@ -395,7 +404,7 @@ fmodify ::
   Lens s t a b
   -> (a -> f b)
   -> s
-  -> f t 
+  -> f t
 fmodify _ _ _ =
   error "todo: fmodify"
 
@@ -699,7 +708,7 @@ setCityAndLocality ::
   (Person, Address) -> (String, Locality) -> (Person, Address)
 setCityAndLocality =
   error "todo: setCityAndLocality"
-  
+
 -- |
 --
 -- >>> getSuburbOrCity (Left maryAddress)
