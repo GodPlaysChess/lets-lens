@@ -117,17 +117,18 @@ fmapT ::
   (a -> b)
   -> t a
   -> t b
-fmapT = fmap
+fmapT =
+  (getIdentity .) . traverse . (Identity .)
 
 
 -- | Let's refactor out the call to @traverse@ as an argument to @fmapT@.
 over ::
-  ((a -> Identity b) -> s -> Identity t)
+  ((a -> Identity b) -> s -> Identity t)  -- f - identity.
   -> (a -> b)
-  -> s
-  -> t
-over tr f =  getIdentity . tr (Identity . f)
---  getIdentity $ getIdentity (fmapT tr (Identity (Identity . f))) s
+  -> s  -- ta
+  -> t  -- tb
+over tr f = getIdentity . tr (Identity . f)
+-- ((getIdentity .) .) . (. (Identity .))
 
 -- | Here is @fmapT@ again, passing @traverse@ to @over@.
 fmapTAgain ::
@@ -165,9 +166,10 @@ set ::
   -> s
   -> b
   -> t
-set =
-  error "todo: set"
-
+set ss s b =
+  over ss (const b) s
+  -- getIdentity $ ss (const . Identity $ b ) s
+  -- point free: flip . (. const) . over
 ----
 
 -- | Observe that @foldMap@ can be recovered from @traverse@ using @Const@.
@@ -178,8 +180,7 @@ foldMapT ::
   (a -> b)
   -> t a
   -> b
-foldMapT =
-  error "todo: foldMapT"
+foldMapT = (getConst .) . traverse . (Const .)
 
 -- | Let's refactor out the call to @traverse@ as an argument to @foldMapT@.
 foldMapOf ::
@@ -187,8 +188,8 @@ foldMapOf ::
   -> (a -> r)
   -> s
   -> r
-foldMapOf =
-  error "todo: foldMapOf"
+foldMapOf tr f = getConst . tr (Const . f)
+
 
 -- | Here is @foldMapT@ again, passing @traverse@ to @foldMapOf@.
 foldMapTAgain ::
@@ -197,7 +198,7 @@ foldMapTAgain ::
   -> t a
   -> b
 foldMapTAgain =
-  error "todo: foldMapTAgain"
+  foldMapOf traverse
 
 -- | Let's create a type-alias for this type of function.
 type Fold s t a b =
@@ -214,14 +215,14 @@ folds ::
   -> (a -> Const b a)
   -> s
   -> Const t s
-folds =
-  error "todo: folds"
+folds fd f s =
+  Const $ fd (getConst . f) s
 
 folded ::
   Foldable f =>
   Fold (f a) (f a) a a
 folded =
-  error "todo: folded"
+  folds foldMap
 
 ----
 
@@ -235,8 +236,8 @@ get ::
   Get a s a
   -> s
   -> a
-get =
-  error "todo: get"
+get g s = getConst $ g Const s
+
 
 ----
 
