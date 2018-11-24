@@ -237,8 +237,6 @@ get ::
   -> s
   -> a
 get g s = getConst $ g Const s
-
-
 ----
 
 -- | Let's generalise @Identity@ and @Const r@ to any @Applicative@ instance.
@@ -253,7 +251,7 @@ type Traversal s t a b =
 both ::
   Traversal (a, a) (b, b) a b
 both =
-  error "todo: both"
+  \afb aa -> (\a -> (a, afb (snd a))) <*> (\a -> (afb (fst a), a)) <*> aa
 
 -- | Traverse the left side of @Either@.
 traverseLeft ::
