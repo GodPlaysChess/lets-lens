@@ -238,8 +238,6 @@ get ::
   -> s
   -> a
 get g s = getConst $ g Const s
-
-
 ----
 
 -- | Let's generalise @Identity@ and @Const r@ to any @Applicative@ instance.
@@ -253,7 +251,12 @@ type Traversal s t a b =
 -- | Traverse both sides of a pair.
 both ::
   Traversal (a, a) (b, b) a b
+<<<<<<< HEAD
 both = \f aa -> (,) <$> f (snd aa) <*> f (fst aa)
+=======
+both =
+  \afb aa -> (\a -> (a, afb (snd a))) <*> (\a -> (afb (fst a), a)) <*> aa
+>>>>>>> 0bd24f9dc8b9c53331d26f75da0539a554834113
 
 -- | Traverse the left side of @Either@.
 traverseLeft ::
