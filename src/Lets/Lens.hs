@@ -74,6 +74,7 @@ module Lets.Lens (
 ) where
 
 import           Control.Applicative (Applicative (pure, (<*>)))
+import           Data.Bifunctor
 import           Data.Char           (toUpper)
 import           Data.Foldable       (Foldable (foldMap))
 import           Data.Functor        ((<$>))
@@ -252,20 +253,19 @@ type Traversal s t a b =
 -- | Traverse both sides of a pair.
 both ::
   Traversal (a, a) (b, b) a b
-both =
-  error "todo: both"
+both = \f aa -> (,) <$> f (snd aa) <*> f (fst aa)
 
 -- | Traverse the left side of @Either@.
 traverseLeft ::
   Traversal (Either a x) (Either b x) a b
-traverseLeft =
-  error "todo: traverseLeft"
+traverseLeft f a =
+  either (fmap Left) (pure . Right) $ first f a
 
 -- | Traverse the right side of @Either@.
 traverseRight ::
   Traversal (Either x a) (Either x b) a b
-traverseRight =
-  error "todo: traverseRight"
+traverseRight f a =
+  either (pure . Left) (fmap Right) $ second f a
 
 type Traversal' a b =
   Traversal a a b b
