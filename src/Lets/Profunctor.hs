@@ -2,7 +2,7 @@ module Lets.Profunctor (
   Profunctor(dimap)
 ) where
 
-import Lets.Data
+import           Lets.Data
 
 -- | A profunctor is a binary functor, with the first argument in contravariant
 -- (negative) position and the second argument in covariant (positive) position.

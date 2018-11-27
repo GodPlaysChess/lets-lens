@@ -291,22 +291,46 @@ type Prism s t a b =
   p a (f b)
   -> p s (f t)
 
+-- Prism is a transformation of profunctor. In other words prism kind of gives you
+-- both s -> a  and b -> t.
+-- in other words, given f = s -> a and g = b -> t it's trivial to construct a prism:
+-- prism s t a b = dimap f (fmap g)
+
+-- dimap: (b -> a) (c -> d)    => I can (a -> c)  to   (b -> d)  using dimap.
+-- in case of Prism:  I have   (a -> fb) which Ineed to transofrm to (s -> ft).
+-- hence I need to dimap over 2 functions: (s -> a) and (fb -> ft)
+-- in case of the _Left prism this dimap would be look like:
+-- E a x -> a  and fb -> f E b x.  (where 2nd funciton is <$> Left)
+
+
+-- Choice gives me a way to map over eithers.
+-- for (->) :  it gives me "mapLeft" and "mapRight"
+
+-- so here, given (a -> fb) I need to return (Either a x -> f Either b x)
+
+-- with plain eithers implementation would be: (applying given function to the left, and then folding the either)
+-- \eax -> either (fmap Left) (pure . Right) $ first f eax
+
 _Left ::
   Prism (Either a x) (Either b x) a b
-_Left =
-  error "todo: _Left"
+_Left p =
+  dimap id (either (fmap Left) (pure . Right)) $ left p
 
 _Right ::
   Prism (Either x a) (Either x b) a b
-_Right =
-  error "todo: _Right"
+_Right p =
+  dimap id (either (pure . Left) (fmap Right)) $ right p
 
 prism ::
   (b -> t)
   -> (s -> Either t a)
   -> Prism s t a b
-prism =
-  error "todo: prism"
+prism f g =      --e t a
+  dimap (\s -> either () id (sta s)) (fmap f)
+
+-- right p = p (Either a c) (Either fb c)
+--
+-- goal: p s ft
 
 _Just ::
   Prism (Maybe a) (Maybe b) a b
