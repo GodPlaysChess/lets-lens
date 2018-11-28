@@ -325,8 +325,7 @@ prism ::
   (b -> t)
   -> (s -> Either t a)
   -> Prism s t a b
-prism f g =      --e t a
-  dimap (\s -> either () id (sta s)) (fmap f)
+prism f g p = dimap g (either pure (fmap f)) $ right p
 
 -- right p = p (Either a c) (Either fb c)
 --
@@ -335,12 +334,14 @@ prism f g =      --e t a
 _Just ::
   Prism (Maybe a) (Maybe b) a b
 _Just =
-  error "todo: _Just"
+--  dimap (maybe (Right ()) Left) (fmap $ either Just (const Nothing)) $ _Left p
+--  dimap (maybe (Right ()) Left) (either (fmap Just) (const $ pure Nothing)) $ left p
+  prism Just (maybe (Left Nothing) Right)
 
 _Nothing ::
   Prism (Maybe a) (Maybe a) () ()
 _Nothing =
-  error "todo: _Nothing"
+  prism (const Nothing) (maybe (Left Nothing) (\_ ->  Right ()))
 
 setP ::
   Prism s t a b
