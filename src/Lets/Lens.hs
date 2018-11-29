@@ -327,10 +327,6 @@ prism ::
   -> Prism s t a b
 prism f g p = dimap g (either pure (fmap f)) $ right p
 
--- right p = p (Either a c) (Either fb c)
---
--- goal: p s ft
-
 _Just ::
   Prism (Maybe a) (Maybe b) a b
 _Just =
@@ -341,21 +337,35 @@ _Just =
 _Nothing ::
   Prism (Maybe a) (Maybe a) () ()
 _Nothing =
-  prism (const Nothing) (maybe (Left Nothing) (\_ ->  Right ()))
+  prism (const Nothing) (maybe (Left Nothing) (\_ -> Right ()))
 
 setP ::
   Prism s t a b
   -> s
   -> Either t a
-setP _ _ =
-  error "todo: setP"
+setP p s = --error "lol"
+       let tp = p Tagged
+           rtp = right (tp s)
+           in
+           either Left Left (getTagged rtp)
+
+-- p = Tagged, f = Identity
+  --    Tagged a (f b)
+  -- -> Tagged s (f t)
+  -- Tagged a b : getTagged :: b
+
+tgd ::
+  Tagged a t
+  -> Either t b
+tgd = error ""
+
 
 getP ::
   Prism s t a b
   -> b
   -> t
-getP _ _ =
-  error "todo: getP"
+getP p b = error ""-- s -> Tagged t
+ --  getTagged . getTagged $ dimap undefined (\_ -> Tagged b) p
 
 type Prism' a b =
   Prism a a b b
