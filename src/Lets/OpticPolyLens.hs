@@ -343,14 +343,15 @@ identity =
 -- >>> set (product fstL sndL) (("abc", 3), (4, "def")) ("ghi", "jkl")
 -- (("ghi",3),(4,"jkl"))
 product ::
-  Lens s t a b
-  -> Lens q r c d
+  Lens s t a b -- afb s -> ft
+  -> Lens q r c d -- cfd q -> fr
   -> Lens (s, q) (t, r) (a, c) (b, d)
-product l2 l1 = error "todo"
-{-  Lens (\acfbd sq ->
-          (flip $ fmodify l2 (fst sq)) (flip $ fmodify l1 (snd sq))
+product l2 l1 = -- error "todo"
+  Lens (\f (s, q) ->
+          fmap (\(b, d) -> (set l2 s b, set l1 q d))
+               (f (get l2 s, get l1 q))
        )
--}
+
 
 -- | An alias for @product@.
 (***) ::
@@ -380,10 +381,10 @@ choice ::
   -> Lens q r a b
   -> Lens (Either s q) (Either t r) a b
 choice l2 l1 =
-  Lens (\afb ->
+  Lens (\f ->
           either
-          (\t -> Left <$> fmodify l2 afb t)
-          (\r -> Right <$> fmodify l1 afb r)
+          (\t -> Left <$> fmodify l2 f t)
+          (\r -> Right <$> fmodify l1 f r)
        )
 
 -- | An alias for @choice@.
