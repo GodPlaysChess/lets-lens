@@ -129,7 +129,7 @@ modify ::
   -> s
   -> t
 modify l f s =
-  set l s (f $ get l s)
+   set l s (f $ get l s)
 
 -- | An alias for @modify@.
 (%~) ::
@@ -346,7 +346,7 @@ product ::
   Lens s t a b -- afb s -> ft
   -> Lens q r c d -- cfd q -> fr
   -> Lens (s, q) (t, r) (a, c) (b, d)
-product l2 l1 = -- error "todo"
+product l2 l1 =
   Lens (\f (s, q) ->
           fmap (\(b, d) -> (set l2 s b, set l1 q d))
                (f (get l2 s, get l1 q))

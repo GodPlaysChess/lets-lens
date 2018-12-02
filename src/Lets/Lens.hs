@@ -305,6 +305,7 @@ type Prism s t a b =
 
 -- Choice gives me a way to map over eithers.
 -- for (->) :  it gives me "mapLeft" and "mapRight"
+-- for Tagged - it's just wrap corresponding value in Left or Right.
 
 -- so here, given (a -> fb) I need to return (Either a x -> f Either b x)
 
@@ -343,29 +344,21 @@ setP ::
   Prism s t a b
   -> s
   -> Either t a
-setP p s = --error "lol"
-       let tp = p Tagged
-           rtp = right (tp s)
-           in
-           either Left Left (getTagged rtp)
+setP p s = either Right Left $ p Left s
 
 -- p = Tagged, f = Identity
   --    Tagged a (f b)
   -- -> Tagged s (f t)
   -- Tagged a b : getTagged :: b
-
-tgd ::
-  Tagged a t
-  -> Either t b
-tgd = error ""
-
+  -- that does not help us, since we're discarding the only value we really have (that we want to set) as a tag.
+  -- which left as to p is an (->)
+  -- f could not be Const, since it's discarding `s` value as well and requires Monoid
 
 getP ::
   Prism s t a b
   -> b
   -> t
-getP p b = error ""-- s -> Tagged t
- --  getTagged . getTagged $ dimap undefined (\_ -> Tagged b) p
+getP p = getIdentity . getTagged . p . Tagged . Identity
 
 type Prism' a b =
   Prism a a b b
@@ -388,8 +381,8 @@ modify ::
   -> (a -> b)
   -> s
   -> t
-modify _ _ _ =
-  error "todo: modify"
+modify l f s =
+   getIdentity $ l (Identity . f) s
 
 -- | An alias for @modify@.
 (%~) ::
@@ -418,8 +411,8 @@ infixr 4 %~
   -> b
   -> s
   -> t
-(.~) _ _ _ =
-  error "todo: (.~)"
+(.~) r b s =
+  getIdentity (r (const (Identity b)) s)
 
 infixl 5 .~
 
@@ -439,8 +432,8 @@ fmodify ::
   -> (a -> f b)
   -> s
   -> f t
-fmodify _ _ _ =
-  error "todo: fmodify"
+fmodify = id
+
 
 -- |
 --
@@ -455,8 +448,8 @@ fmodify _ _ _ =
   -> f b
   -> s
   -> f t
-(|=) _ _ _ =
-  error "todo: (|=)"
+(|=) l =
+  l . const
 
 infixl 5 |=
 
@@ -466,8 +459,8 @@ infixl 5 |=
 -- (30,"abc")
 fstL ::
   Lens (a, x) (b, x) a b
-fstL =
-  error "todo: fstL"
+fstL f (s1, s2) =
+  fmap (\o -> (o, s2)) (f s1)
 
 -- |
 --
@@ -475,8 +468,9 @@ fstL =
 -- (13,"abcdef")
 sndL ::
   Lens (x, a) (x, b) a b
-sndL =
-  error "todo: sndL"
+sndL f (s1, s2) =
+         fmap (\o -> (s1, o)) (f s2)
+
 
 -- |
 --
@@ -506,8 +500,13 @@ mapL ::
   Ord k =>
   k
   -> Lens (Map k v) (Map k v) (Maybe v) (Maybe v)
-mapL =
-  error "todo: mapL"
+mapL k f m =
+  maybe
+   (Map.delete k m)
+   (\e -> Map.insert k e m)
+   <$>
+   (f $ Map.lookup k m)
+
 
 -- |
 --
@@ -537,8 +536,12 @@ setL ::
   Ord k =>
   k
   -> Lens (Set.Set k) (Set.Set k) Bool Bool
-setL =
-  error "todo: setL"
+setL k f s =
+  bool
+    (Set.delete k s)
+    (Set.insert k s)
+    <$>
+    (f $ Set.member k s)
 
 -- |
 --
@@ -551,8 +554,7 @@ compose ::
   Lens s t a b
   -> Lens q r s t
   -> Lens q r a b
-compose _ _ =
-  error "todo: compose"
+compose = flip (.)
 
 -- | An alias for @compose@.
 (|.) ::
@@ -573,8 +575,8 @@ infixr 9 |.
 -- 4
 identity ::
   Lens a b a b
-identity =
-  error "todo: identity"
+identity = id
+
 
 -- |
 --
@@ -587,8 +589,9 @@ product ::
   Lens s t a b
   -> Lens q r c d
   -> Lens (s, q) (t, r) (a, c) (b, d)
-product _ _ =
-  error "todo: product"
+product l2 l1 f (s, q) =
+    fmap (\(b, d) -> (set l2 s b, set l1 q d))
+               (f (get l2 s, (get l1) q))
 
 -- | An alias for @product@.
 (***) ::
@@ -617,8 +620,10 @@ choice ::
   Lens s t a b
   -> Lens q r a b
   -> Lens (Either s q) (Either t r) a b
-choice _ _ =
-  error "todo: choice"
+choice l2 l1 f =
+   either
+          (\t -> Left <$> fmodify l2 f t)
+          (\r -> Right <$> fmodify l1 f r)
 
 -- | An alias for @choice@.
 (|||) ::
@@ -702,7 +707,7 @@ getSuburb ::
   Person
   -> String
 getSuburb =
-  error "todo: getSuburb"
+  get $ suburbL |. addressL
 
 -- |
 --
